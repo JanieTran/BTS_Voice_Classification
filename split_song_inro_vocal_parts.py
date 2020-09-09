@@ -41,20 +41,20 @@ def main():
                     sub_track = song[cursor_start:cursor_end]
                     # Only export tracks longer than min length
                     if len(sub_track) >= MIN_LEN_MS:
-                        sub_track.export(f'data/{MEMBER_LABELS[member]}/{song_name}_{count}.mp3', format='mp3')
+                        sub_track.export(f'data/{MEMBER_TO_LABEL[member]}/{song_name}_{count}.mp3', format='mp3')
                     cursor_start = cursor_end
                     count += 1
             # Only export tracks longer than min length
             elif end_ms - start_ms >= MIN_LEN_MS:
                 track = song[start_ms:end_ms]
-                track.export(f'data/{MEMBER_LABELS[member]}/{song_name}_{count}.mp3', format='mp3')
+                track.export(f'data/{MEMBER_TO_LABEL[member]}/{song_name}_{count}.mp3', format='mp3')
                 count += 1
 
     print()
     total = 0
     for i in range(7):
         count = len(os.listdir(f'data/{i}'))
-        print(f'{i}: {count}')
+        print(f'{LABEL_TO_MEMBER[i]}: {count}')
         total += count
     print(f'Total: {total}')
 
