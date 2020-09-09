@@ -3,7 +3,7 @@ import os
 from pydub import AudioSegment
 from config import *
 
-with open('audio/label.json') as f:
+with open('data/label.json') as f:
     ANNOTATION = json.load(f)
 
 
