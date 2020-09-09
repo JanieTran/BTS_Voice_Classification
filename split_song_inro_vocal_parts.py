@@ -24,7 +24,7 @@ def get_start_end_ms(timestamp):
 
 def main():
     # mp3_files = [x.split('.')[0] for x in os.listdir('audio') if '.mp3' in x]
-    mp3_files = ['DNA']
+    mp3_files = ['Moonchild']
 
     for song_name in mp3_files:
         print(song_name, end=' ')
