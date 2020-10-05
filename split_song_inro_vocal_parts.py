@@ -3,9 +3,6 @@ import os
 from pydub import AudioSegment
 from config import *
 
-with open('data/label.json') as f:
-    ANNOTATION = json.load(f)
-
 
 def get_start_end_ms(timestamp):
     """
@@ -31,7 +28,7 @@ def main():
         song = AudioSegment.from_file(f'audio/{song_name}.mp3')
         count = 0
 
-        for timestamp, member in ANNOTATION[song_name].items():
+        for timestamp, member in ANNOTATION[song_name]['timestamp'].items():
             start_ms, end_ms = get_start_end_ms(timestamp=timestamp)
             # If track is longer than 5s, split into smaller tracks
             if end_ms - start_ms > MAX_LEN_MS:
