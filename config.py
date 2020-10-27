@@ -13,3 +13,9 @@ NUM_LABELS = len(MEMBER_TO_LABEL)
 
 with open('data/label.json') as f:
     ANNOTATION = json.load(f)
+
+# Vocal range of singing voice, from E2 to C6
+MIN_FREQ = 82
+MAX_FREQ = 1047
+
+N_FFT = 2048

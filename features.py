@@ -8,27 +8,25 @@ from time import time
 from scipy import signal
 
 
-def load_audio(file_path, resample_rate=1.):
+def load_audio(file_path, sample_rate=44100):
     """Load audio file into numpy object, resample if specified
     Args:
         file_path (str): path to audio file
-        resample_rate (float): multiplied by original sample rate to get new sample rate,
-            <1 for down-sampling, >1 for up-sampling, 1 for no resampling
+        sample_rate (float): sampling rate to load input
     Returns:
         np.array: (resampled) audio
         int: (new) sample rate
     """
-    x, sample_rate = librosa.load(path=file_path, sr=None)
-    if resample_rate == 1:
+    x, sr = librosa.load(path=file_path, sr=None)
+    if sample_rate == sr:
         return x, sample_rate
 
     # Calculate new number of samples in resulted signal
-    duration = len(x) / sample_rate
-    new_sr = sample_rate * resample_rate
-    n_sample = int(duration * new_sr)
+    duration = len(x) / sr
+    n_sample = int(duration * sample_rate)
 
     audio_resampled = signal.resample(x=x, num=n_sample)
-    return audio_resampled, int(new_sr)
+    return audio_resampled, sample_rate
 
 
 def fourier_transform(x, sample_rate, use_window=True):
@@ -45,14 +43,46 @@ def fourier_transform(x, sample_rate, use_window=True):
     window = signal.windows.blackmanharris(M=n_samples)
 
     if use_window:
-        fourier = np.fft.fft(x * window)
+        fourier = np.fft.rfft(x * window)
     else:
-        fourier = np.fft.fft(x)
+        fourier = np.fft.rfft(x)
 
-    fourier = fourier[:n_samples // 2]
     fourier = 2 / n_samples * abs(fourier)
-    frequencies = np.linspace(start=0, stop=sample_rate / 2, num=n_samples // 2)
+    frequencies = np.fft.rfftfreq(n=n_samples, d=1/sample_rate)
     return fourier, frequencies
+
+
+def spectral_centroid(spectrum, sample_rate):
+    """Weighted average of frequencies
+    Args:
+        spectrum (np.array(float)): resulted spectrum from STFT
+        sample_rate (int): sampling rate of signal
+    Returns:
+        np.array(float): spectral centroid
+    """
+    X = np.abs(spectrum) ** 2
+    norm = X.sum(axis=0, keepdims=True)
+    norm[norm == 0] = 1
+
+    vsc = np.dot(np.arange(0, X.shape[0]), X) / norm
+    vsc = vsc / (X.shape[0] - 1) * sample_rate / 2
+
+    return np.squeeze(vsc)
+
+
+def spectral_flux(spectrum):
+    """Difference in frequency of successive time frames
+    Args:
+        spectrum (np.array(float)): resulted spectrum from STFT
+    Returns:
+        np.array(float): spectral flux
+        np.array(float): timestamps
+    """
+    # Squared difference in frequency between successive frames
+    flux = np.c_[spectrum[:, 0], spectrum]
+    flux = np.abs(np.diff(flux, n=1, axis=1))
+    flux = np.sqrt(np.sum(flux ** 2, axis=0)) / spectrum.shape[0]
+    return flux
 
 
 def get_audio_features_dataframe(n_mfcc):
@@ -73,18 +103,22 @@ def get_audio_features_dataframe(n_mfcc):
         for f in files:
             # Aggregated MFCC values, so that each audio is represented
             # by a 1D array of length n_mfcc
-            x, sample_rate = load_audio(file_path=f, resample_rate=1/3)
+            x, sample_rate = load_audio(file_path=f, sample_rate=44100/3)
             mfcc_feat = MFCC(y=x, sr=sample_rate, n_mfcc=n_mfcc)
             mfcc_mean = mfcc_feat.mean(axis=1)
+            zero_crossing = sum(librosa.zero_crossings(y=x))
+            centroids = librosa.feature.spectral_centroid(y=x, sr=sample_rate)
 
             # Each coefficient is a feature column
             row = {'label': label, 'file_path': f}
             for number, coef in enumerate(mfcc_mean):
                 row[f'mfcc_{n_mfcc}_{number + 1:02d}'] = coef
+            row['zero_crossing'] = zero_crossing
+            row['spectral_centroid'] = np.mean(centroids)
             rows.append(row)
         df = df.append(rows, ignore_index=True)
 
-    df.to_csv(f'features_mfcc{n_mfcc}_down.csv', index=False)
+    df.to_csv(f'features.csv', index=False)
 
 
 if __name__ == "__main__":
