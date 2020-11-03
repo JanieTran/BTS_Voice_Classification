@@ -64,10 +64,10 @@ def spectral_centroid(spectrum, sample_rate):
     norm = X.sum(axis=0, keepdims=True)
     norm[norm == 0] = 1
 
-    vsc = np.dot(np.arange(0, X.shape[0]), X) / norm
-    vsc = vsc / (X.shape[0] - 1) * sample_rate / 2
+    centroids = np.dot(np.arange(0, X.shape[0]), X) / norm
+    centroids = centroids / (X.shape[0] - 1) * sample_rate / 2
 
-    return np.squeeze(vsc)
+    return np.squeeze(centroids)
 
 
 def spectral_flux(spectrum):
@@ -83,6 +83,34 @@ def spectral_flux(spectrum):
     flux = np.abs(np.diff(flux, n=1, axis=1))
     flux = np.sqrt(np.sum(flux ** 2, axis=0)) / spectrum.shape[0]
     return flux
+
+
+def spectral_slope(spectrum):
+    # Mean
+    mu = spectrum.mean(axis=0, keepdims=True)
+    # Index vector
+    kmu = np.arange(0, spectrum.shape[0]) - spectrum.shape[0] / 2
+    # Slope
+    slope = spectrum - mu
+    slope = np.dot(kmu, slope) / np.dot(kmu, kmu)
+    return slope
+
+
+def spectral_roll_off(spectrum, sample_rate, cutoff=0.85):
+    # Sum of frequency energies to calculate mean
+    freq_sum = spectrum.sum(axis=0)
+    freq_sum[freq_sum == 0] = 1
+
+    # Cumulative sum of energy for each frequency
+    X = np.cumsum(spectrum, axis=0)
+    # Divide by total energy sum to find much energy is covered up to a frequency
+    X = X / freq_sum
+
+    # Find position of frequency covering cutoff percentage
+    roll_off = np.argmax(X >= cutoff, axis=0)
+    # Convert from position index to Hz
+    roll_off = roll_off / (X.shape[0] - 1) * sample_rate / 2
+    return roll_off
 
 
 def get_audio_features_dataframe(n_mfcc):
