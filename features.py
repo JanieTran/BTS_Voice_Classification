@@ -52,15 +52,15 @@ def fourier_transform(x, sample_rate, use_window=True):
     return fourier, frequencies
 
 
-def spectral_centroid(spectrum, sample_rate):
+def spectral_centroid(spectrogram, sample_rate):
     """Weighted average of frequencies
     Args:
-        spectrum (np.array(float)): resulted spectrum from STFT
+        spectrogram (np.array(float)): resulted spectrogram from STFT
         sample_rate (int): sampling rate of signal
     Returns:
         np.array(float): spectral centroid
     """
-    X = np.abs(spectrum) ** 2
+    X = np.abs(spectrogram) ** 2
     norm = X.sum(axis=0, keepdims=True)
     norm[norm == 0] = 1
 
@@ -70,39 +70,39 @@ def spectral_centroid(spectrum, sample_rate):
     return np.squeeze(centroids)
 
 
-def spectral_flux(spectrum):
+def spectral_flux(spectrogram):
     """Difference in frequency of successive time frames
     Args:
-        spectrum (np.array(float)): resulted spectrum from STFT
+        spectrogram (np.array(float)): resulted spectrogram from STFT
     Returns:
         np.array(float): spectral flux
         np.array(float): timestamps
     """
     # Squared difference in frequency between successive frames
-    flux = np.c_[spectrum[:, 0], spectrum]
+    flux = np.c_[spectrogram[:, 0], spectrogram]
     flux = np.abs(np.diff(flux, n=1, axis=1))
-    flux = np.sqrt(np.sum(flux ** 2, axis=0)) / spectrum.shape[0]
+    flux = np.sqrt(np.sum(flux ** 2, axis=0)) / spectrogram.shape[0]
     return flux
 
 
-def spectral_slope(spectrum):
+def spectral_slope(spectrogram):
     # Mean
-    mu = spectrum.mean(axis=0, keepdims=True)
+    mu = spectrogram.mean(axis=0, keepdims=True)
     # Index vector
-    kmu = np.arange(0, spectrum.shape[0]) - spectrum.shape[0] / 2
+    kmu = np.arange(0, spectrogram.shape[0]) - spectrogram.shape[0] / 2
     # Slope
-    slope = spectrum - mu
+    slope = spectrogram - mu
     slope = np.dot(kmu, slope) / np.dot(kmu, kmu)
     return slope
 
 
-def spectral_roll_off(spectrum, sample_rate, cutoff=0.85):
+def spectral_roll_off(spectrogram, sample_rate, cutoff=0.85):
     # Sum of frequency energies to calculate mean
-    freq_sum = spectrum.sum(axis=0)
+    freq_sum = spectrogram.sum(axis=0)
     freq_sum[freq_sum == 0] = 1
 
     # Cumulative sum of energy for each frequency
-    X = np.cumsum(spectrum, axis=0)
+    X = np.cumsum(spectrogram, axis=0)
     # Divide by total energy sum to find much energy is covered up to a frequency
     X = X / freq_sum
 
