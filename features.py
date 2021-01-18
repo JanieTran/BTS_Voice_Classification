@@ -52,6 +52,33 @@ def fourier_transform(x, sample_rate, use_window=True):
     return fourier, frequencies
 
 
+def log_mel_spectrogram(spectrogram, n_mel_bins):
+    """Log-power Mel spectrogram
+    Args:
+        spectrogram (np.array(float)): resulted spectrogram from STFT
+        n_mel_bins (int): number of Mel filter banks
+    Returns:
+        np.array(float): log-power Mel spectrogram
+    """
+    mel_spec = librosa.feature.melspectrogram(S=np.abs(spectrogram) ** 2, n_mels=n_mel_bins)
+    log_mel_spec = librosa.power_to_db(mel_spec)
+    return log_mel_spec
+
+
+def mel_freq_cepstral_coeff(spectrogram, n_mel_bins, n_mfcc):
+    """Mel Frequency Cepstral Coefficients
+    Args:
+        spectrogram (np.array(float)): resulted spectrogram from STFT
+        n_mel_bins (int): number of Mel filter banks
+        n_mfcc (int): number of resulted coefficients
+    Returns:
+        np.array(float): MFCC of specified coefficients
+    """
+    log_mel_spec = log_mel_spectrogram(spectrogram=spectrogram, n_mel_bins=n_mel_bins)
+    mfccs = librosa.feature.mfcc(S=log_mel_spec, n_mfcc=n_mfcc)
+    return mfccs
+
+
 def spectral_centroid(spectrogram, sample_rate):
     """Weighted average of frequencies
     Args:
