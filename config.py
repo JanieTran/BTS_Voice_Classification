@@ -18,6 +18,11 @@ with open('data/label.json') as f:
 MIN_FREQ = 82
 MAX_FREQ = 1047
 
+SAMPLE_RATE = 44100 / 3
+
 N_FFT = 2048
 HOP_LENGTH = 512
 N_MEL_BINS = 128
+N_MFCC = 12
+
+WINDOW = 'blackmanharris'

@@ -1,7 +1,10 @@
-import json
 import os
+import random
+import numpy as np
 from pydub import AudioSegment
 from config import *
+from features import load_audio, mel_freq_cepstral_coeff
+from scipy import signal
 
 
 def get_start_end_ms(timestamp):
@@ -19,7 +22,54 @@ def get_start_end_ms(timestamp):
     return start_ms, end_ms
 
 
-def main():
+def sample_train_test_songs(test_size, random_seed, include_val=False):
+    songs = {'group': [], 'unit': [], 'solo': []}
+
+    for song, attr in ANNOTATION.items():
+        song_type = ANNOTATION[song]['type']
+        songs[song_type].append(song)
+
+    n_test = int(len(songs['group']) * test_size)
+    random.seed(a=random_seed)
+    test_songs = random.choices(songs['group'], k=n_test)
+    train_songs = [x for x in songs['group'] if x not in test_songs] + songs['unit'] + songs['solo']
+    val_songs = None
+
+    if include_val:
+        val_songs = test_songs[:n_test // 2]
+        test_songs = test_songs[n_test // 2:]
+    return train_songs, val_songs, test_songs
+
+
+def form_audio_data_array(song_names, sample_rate=SAMPLE_RATE, window=WINDOW, n_fft=N_FFT,
+                          hop_length=HOP_LENGTH, n_mel=N_MEL_BINS, n_mfcc=N_MFCC, add_axis=False):
+    X = []
+    Y = []
+
+    for member, label in MEMBER_TO_LABEL.items():
+        print(member, end=' ')
+        files = os.listdir(f'data/{label}')
+        files = [x for x in files if x.split('_')[0] in song_names]
+        files = [f'data/{label}/{x}' for x in files]
+        for f in files:
+            x, sr = load_audio(file_path=f, sample_rate=sample_rate)
+            if len(x) / sr < 5:
+                continue
+            freqs, ts, spectrogram = signal.stft(x=x, fs=sr, window=window, nfft=n_fft, nperseg=hop_length)
+            mfccs = mel_freq_cepstral_coeff(spectrogram=spectrogram, n_mel_bins=n_mel, n_mfcc=n_mfcc)
+            X.append(mfccs)
+            Y.append(label)
+
+    print()
+    X = np.array(X)
+    Y = np.array(Y)
+    if add_axis:
+        X = X[..., np.newaxis]
+        Y = Y[..., np.newaxis]
+    return X, Y
+
+
+def split_audio_files_into_tracks():
     # mp3_files = [x.split('.')[0] for x in os.listdir('audio') if '.mp3' in x]
     mp3_files = ['Moonchild']
 
@@ -57,4 +107,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    split_audio_files_into_tracks()
